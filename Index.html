@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Snake IO</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; touch-action: none; user-select: none; }
+    body { background: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; width: 100vw; overflow: hidden; }
+    #ui { position: absolute; top: 24px; font-size: 1.4rem; font-weight: 700; letter-spacing: 0.5px; }
+    canvas { background: #1e293b; border: 2px solid #334155; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+  </style>
+</head>
+<body>
+  <div id="ui">Score: <span id="score">0</span></div>
+  <canvas id="game"></canvas>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+
+    const size = Math.min(window.innerWidth - 32, window.innerHeight - 120, 420);
+    canvas.width = size;
+    canvas.height = size;
+    const gridCount = 20;
+    const box = size / gridCount;
+
+    let score = 0;
+    let snake = [{ x: 10, y: 10 }];
+    let food = getRandomPos();
+    let dir = 'RIGHT';
+    let nextDir = 'RIGHT';
+
+    function getRandomPos() {
+      let pos;
+      while (!pos || snake.some(s => s.x === pos.x && s.y === pos.y)) {
+        pos = { x: Math.floor(Math.random() * gridCount), y: Math.floor(Math.random() * gridCount) };
+      }
+      return pos;
+    }
+
+    let startX = 0, startY = 0;
+    window.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+
+    window.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - startX;
+      const dy = e.changedTouches[0].clientY - startY;
+      const threshold = 30;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (Math.abs(dx) > threshold) {
+          if (dx > 0 && dir !== 'LEFT') nextDir = 'RIGHT';
+          else if (dx < 0 && dir !== 'RIGHT') nextDir = 'LEFT';
+        }
+      } else {
+        if (Math.abs(dy) > threshold) {
+          if (dy > 0 && dir !== 'UP') nextDir = 'DOWN';
+          else if (dy < 0 && dir !== 'DOWN') nextDir = 'UP';
+        }
+      }
+    }, { passive: false });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp' && dir !== 'DOWN') nextDir = 'UP';
+      if (e.key === 'ArrowDown' && dir !== 'UP') nextDir = 'DOWN';
+      if (e.key === 'ArrowLeft' && dir !== 'RIGHT') nextDir = 'LEFT';
+      if (e.key === 'ArrowRight' && dir !== 'LEFT') nextDir = 'RIGHT';
+    });
+
+    function update() {
+      dir = nextDir;
+      let head = { ...snake[0] };
+      if (dir === 'UP') head.y--;
+      if (dir === 'DOWN') head.y++;
+      if (dir === 'LEFT') head.x--;
+      if (dir === 'RIGHT') head.x++;
+
+      if (head.x < 0 || head.x >= gridCount || head.y < 0 || head.y >= gridCount || snake.some(s => s.x === head.x && s.y === head.y)) {
+        alert('Game Over! Score: ' + score);
+        snake = [{ x: 10, y: 10 }];
+        dir = 'RIGHT';
+        nextDir = 'RIGHT';
+        score = 0;
+        scoreEl.textContent = score;
+        food = getRandomPos();
+        return;
+      }
+
+      snake.unshift(head);
+      if (head.x === food.x && head.y === food.y) {
+        score += 10;
+        scoreEl.textContent = score;
+        food = getRandomPos();
+      } else {
+        snake.pop();
+      }
+
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc((food.x + 0.5) * box, (food.y + 0.5) * box, box / 2.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      snake.forEach((seg, i) => {
+        ctx.fillStyle = i === 0 ? '#22c55e' : '#86efac';
+        ctx.fillRect(seg.x * box + 1, seg.y * box + 1, box - 2, box - 2);
+      });
+    }
+
+    setInterval(update, 120);
+  </script>
+</body>
+</html>
